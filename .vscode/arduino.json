@@ -1,5 +1,0 @@
-{
-    "sketch": "estacionamiento.cpp",
-    "output": "build",
-    "board": "arduino:avr:uno"
-}
