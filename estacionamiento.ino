@@ -1,4 +1,4 @@
-
+// UMAI
 /*
  * CounterwithLimit
  *
@@ -14,6 +14,13 @@ private:
     int count = 0;
 
 public:
+    CounterWithLimit()
+    {
+        this->lowerBound = 0;
+        this->upperBound = 0;
+        this->count = 0;
+    }
+
     CounterWithLimit(int lowerBound, int upperBound, int initialValue)
     {
         this->lowerBound = lowerBound;
@@ -43,6 +50,51 @@ public:
             this->count--;
         }
         return this->count;
+    }
+
+    // Setters y getters
+
+    void setUpperLimit(int upperLimit)
+    {
+        this->upperBound = upperLimit;
+    }
+
+    int getUpperLimit()
+    {
+        return this->upperBound;
+    }
+
+    void setLowerLimit(int lowerLimit)
+    {
+        this->lowerBound = lowerLimit;
+    }
+
+    int getLowerLimit()
+    {
+        return this->lowerBound;
+    }
+};
+
+class Estacionamiento
+{
+
+private:
+    CounterWithLimit counterCarros;
+
+public:
+    Estacionamiento(int capacidad)
+    {
+        this->counterCarros = CounterWithLimit(0, capacidad + 1, 0);
+    }
+
+    void carIn()
+    {
+        this->counterCarros.increment();
+    }
+
+    void carOut()
+    {
+        this->counterCarros.decrement();
     }
 };
 
