@@ -7,6 +7,9 @@
  * [l,u). It also shows if you are on a limit.
  */
 
+
+using bit = char;
+
 class CounterWithLimit
 {
 
@@ -81,7 +84,7 @@ class Button
 {
 
 private:
-    int state = 0;
+    bit state = 0;
     int pin;
 
 public:
@@ -106,6 +109,13 @@ public:
     {
         return this->state;
     }
+};
+
+class Led
+{
+
+private:
+    int state;
 };
 
 class SistemaPluma
@@ -142,11 +152,27 @@ private:
     CounterWithLimit counterCarros;
     LiquidCrystal *logger;
 
+    enum SalidasIndice
+    {
+        LLENO,
+        DISPONIBLE
+    };
+
+    enum SistemaPlumasIndices
+    {
+        ENTRADA,
+        SALIDA
+    };
+
+    SistemaPluma sistemasPluma[2];
+
 public:
-    Estacionamiento(int capacidad, LiquidCrystal *logger)
+    Estacionamiento(int capacidad, LiquidCrystal *logger, SistemaPluma plumaEntrada, SistemaPluma plumaSalida)
     {
         this->counterCarros = CounterWithLimit(0, capacidad + 1, 0);
         this->logger = logger;
+        this->sistemasPluma[ENTRADA] = plumaEntrada;
+        this->sistemasPluma[SALIDA] = plumaSalida;
     }
 
     void carIn()
@@ -165,8 +191,12 @@ const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 /**************************************************/
 
-Estacionamiento estacionamiento(15, &lcd);
-SistemaPluma plumaEntrada(0, 1);
+#define SENSOR_PESO_ENTRADA 0
+#define SENSOR_PESO_SALIDA 1
+#define SENSOR_TARJETA_ENTRADA 6
+#define SENSOR_TARJETA_SALIDA 7
+
+const Estacionamiento estacionamiento(15, &lcd, SistemaPluma(SENSOR_PESO_ENTRADA, SENSOR_TARJETA_ENTRADA), SistemaPluma(SENSOR_PESO_SALIDA, SENSOR_TARJETA_SALIDA));
 
 void setup()
 {
@@ -183,9 +213,4 @@ void loop()
     // (note: line 1 is the second row, since counting begins with 0):
     lcd.setCursor(0, 1);
     // print the number of seconds since reset:
-    lcd.print("Peso: ");
-    lcd.print(plumaEntrada.getStatePeso());
-    lcd.print("|");
-    lcd.print("Tarjeta: ");
-    lcd.print(plumaEntrada.getStateTarjeta());
 }
