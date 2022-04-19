@@ -82,11 +82,13 @@ class Estacionamiento
 
 private:
     CounterWithLimit counterCarros;
+    LiquidCrystal *logger;
 
 public:
-    Estacionamiento(int capacidad)
+    Estacionamiento(int capacidad, LiquidCrystal *logger)
     {
         this->counterCarros = CounterWithLimit(0, capacidad + 1, 0);
+        this->logger = logger;
     }
 
     void carIn()
@@ -104,6 +106,8 @@ public:
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 /**************************************************/
+
+Estacionamiento estacionamiento(15, &lcd);
 
 void setup()
 {
