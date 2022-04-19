@@ -77,6 +77,32 @@ public:
     }
 };
 
+class Button
+{
+
+private:
+    int state = 0;
+    int pin;
+
+public:
+    Button(int pin)
+    {
+        this->pin = pin;
+        pinMode(pin, INPUT);
+    }
+
+    int read()
+    {
+        this->state = digitalRead(this->pin);
+        return this->state;
+    }
+
+    int getState()
+    {
+        return this->state;
+    }
+};
+
 class Estacionamiento
 {
 
