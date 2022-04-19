@@ -85,6 +85,11 @@ private:
     int pin;
 
 public:
+    Button()
+    {
+        this->pin = 0;
+    }
+
     Button(int pin)
     {
         this->pin = pin;
@@ -100,6 +105,33 @@ public:
     int getState()
     {
         return this->state;
+    }
+};
+
+class SistemaPluma
+{
+
+private:
+    Button sensorPeso;
+    Button sensorTarjeta;
+
+public:
+    SistemaPluma() {}
+
+    SistemaPluma(int pinPeso, int pinTarjeta)
+    {
+        this->sensorPeso = Button(pinPeso);
+        this->sensorTarjeta = Button(pinTarjeta);
+    }
+
+    int getStatePeso()
+    {
+        return this->sensorPeso.read();
+    }
+
+    int getStateTarjeta()
+    {
+        return this->sensorTarjeta.read();
     }
 };
 
@@ -134,13 +166,15 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 /**************************************************/
 
 Estacionamiento estacionamiento(15, &lcd);
+SistemaPluma plumaEntrada(0, 1);
 
 void setup()
 {
     // set up the LCD's number of columns and rows:
     lcd.begin(16, 2);
+
     // Print a message to the LCD.
-    lcd.print("hello, world!");
+    lcd.print("Sistema de las plumas");
 }
 
 void loop()
@@ -149,5 +183,9 @@ void loop()
     // (note: line 1 is the second row, since counting begins with 0):
     lcd.setCursor(0, 1);
     // print the number of seconds since reset:
-    lcd.print(millis() / 1000);
+    lcd.print("Peso: ");
+    lcd.print(plumaEntrada.getStatePeso());
+    lcd.print("|");
+    lcd.print("Tarjeta: ");
+    lcd.print(plumaEntrada.getStateTarjeta());
 }
