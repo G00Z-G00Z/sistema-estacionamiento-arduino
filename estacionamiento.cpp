@@ -7,7 +7,6 @@
  * [l,u). It also shows if you are on a limit.
  */
 
-
 using bit = char;
 
 class CounterWithLimit
@@ -84,7 +83,7 @@ class Button
 {
 
 private:
-    bit state = 0;
+    bit state = LOW;
     int pin;
 
 public:
@@ -115,7 +114,29 @@ class Led
 {
 
 private:
-    int state;
+    int pin;
+
+public:
+    Led()
+    {
+        this->pin = 0;
+    }
+
+    Led(int pin)
+    {
+        this->pin = pin;
+        pinMode(pin, INPUT);
+    }
+
+    void on()
+    {
+        digitalWrite(this->pin, HIGH);
+    }
+
+    void off()
+    {
+        digitalWrite(this->pin, LOW);
+    }
 };
 
 class SistemaPluma
@@ -124,24 +145,27 @@ class SistemaPluma
 private:
     Button sensorPeso;
     Button sensorTarjeta;
+    Led pinPluma;
+
+    enum EstadoPluma
+    {
+        ESPERANDO,
+        DETECTA_PESO,
+        SCAN_TARJETA,     // Solo pasa si se esta detectando un peso
+        QUITANDO_TARJETA, // Solo pasa si se quita la tarjeta despues del peso
+        SALIENDO_PESO,    // Despues de quitar la tarjeta
+    };
+
+    EstadoPluma estado = ESPERANDO;
 
 public:
     SistemaPluma() {}
 
-    SistemaPluma(int pinPeso, int pinTarjeta)
+    SistemaPluma(int pinPeso, int pinTarjeta, int pinPluma)
     {
         this->sensorPeso = Button(pinPeso);
         this->sensorTarjeta = Button(pinTarjeta);
-    }
-
-    int getStatePeso()
-    {
-        return this->sensorPeso.read();
-    }
-
-    int getStateTarjeta()
-    {
-        return this->sensorTarjeta.read();
+        this->pinPluma = Led(pinPluma);
     }
 };
 
@@ -195,8 +219,12 @@ LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 #define SENSOR_PESO_SALIDA 1
 #define SENSOR_TARJETA_ENTRADA 6
 #define SENSOR_TARJETA_SALIDA 7
+#define PLUMA_ENTRADA 8
+#define PLUMA_SALIDA 13
 
-const Estacionamiento estacionamiento(15, &lcd, SistemaPluma(SENSOR_PESO_ENTRADA, SENSOR_TARJETA_ENTRADA), SistemaPluma(SENSOR_PESO_SALIDA, SENSOR_TARJETA_SALIDA));
+const Estacionamiento estacionamiento(15, &lcd,
+                                      SistemaPluma(SENSOR_PESO_ENTRADA, SENSOR_TARJETA_ENTRADA, PLUMA_ENTRADA),
+                                      SistemaPluma(SENSOR_PESO_SALIDA, SENSOR_TARJETA_SALIDA, PLUMA_SALIDA));
 
 void setup()
 {
