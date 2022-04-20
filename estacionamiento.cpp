@@ -98,10 +98,9 @@ public:
         pinMode(pin, INPUT);
     }
 
-    int read()
+    void read()
     {
         this->state = digitalRead(this->pin);
-        return this->state;
     }
 
     int getState()
@@ -145,18 +144,71 @@ class SistemaPluma
 private:
     Button sensorPeso;
     Button sensorTarjeta;
-    Led pinPluma;
+    Led pluma;
 
     enum EstadoPluma
     {
         ESPERANDO,
-        DETECTA_PESO,
-        SCAN_TARJETA,     // Solo pasa si se esta detectando un peso
-        QUITANDO_TARJETA, // Solo pasa si se quita la tarjeta despues del peso
-        SALIENDO_PESO,    // Despues de quitar la tarjeta
+        DETECTAR_CARRO,
+        PLUMA_ABIERTA, // Solo pasa si se esta detectando un peso
     };
 
     EstadoPluma estado = ESPERANDO;
+
+    void updateState()
+    {
+
+        // Lectura de sensores
+        this->sensorPeso.read();
+        this->sensorTarjeta.read();
+
+        // Update del estado
+        switch (this->estado)
+        {
+        // No ha pasado nada
+        case ESPERANDO:
+            if (this->sensorPeso.getState() == HIGH)
+            {
+                this->estado = DETECTAR_CARRO;
+            }
+            break;
+
+        // Ahora espera el scan de la tarjeta, o que se quite
+        case DETECTAR_CARRO:
+
+            // Se quito el carro
+            if (this->sensorPeso.getState() == LOW)
+            {
+                this->estado = ESPERANDO;
+            }
+            else
+                // El carro esta, y se pone la tarjeta
+                if (this->sensorTarjeta.getState() == HIGH)
+                {
+                    this->estado = PLUMA_ABIERTA;
+                }
+
+            // Si no se cumple ninguna de las condiciones, el estado se deja igual
+            break;
+
+        case PLUMA_ABIERTA:
+
+            // Se quita el carro de la pesa, el auto ya paso.
+            if (this->sensorPeso.getState() == LOW)
+            {
+                this->estado = ESPERANDO;
+            }
+
+            break;
+        default:
+            this->estado = ESPERANDO;
+        }
+    }
+
+    void managePluma()
+    {
+        this->estado == PLUMA_ABIERTA ? this->pluma.on() : this->pluma.off();
+    }
 
 public:
     SistemaPluma() {}
@@ -165,7 +217,13 @@ public:
     {
         this->sensorPeso = Button(pinPeso);
         this->sensorTarjeta = Button(pinTarjeta);
-        this->pinPluma = Led(pinPluma);
+        this->pluma = Led(pinPluma);
+    }
+
+    void update()
+    {
+        this->updateState();
+        this->managePluma();
     }
 };
 
