@@ -1,5 +1,12 @@
 #include <LiquidCrystal.h>
-
+#define LED_DISPONIBLE 10
+#define LED_LLENO 9
+#define PLUMA_ENTRADA 8
+#define PLUMA_SALIDA 13
+#define SENSOR_PESO_ENTRADA 0
+#define SENSOR_PESO_SALIDA 1
+#define SENSOR_TARJETA_ENTRADA 6
+#define SENSOR_TARJETA_SALIDA 7
 /*
  * CounterwithLimit
  *
@@ -134,7 +141,7 @@ public:
     Led(int pin)
     {
         this->pin = pin;
-        pinMode(pin, INPUT);
+        pinMode(pin, OUTPUT);
     }
 
     void on()
@@ -148,99 +155,98 @@ public:
     }
 };
 
-class SistemaPluma
+class ParkingPenSystem
 {
 
 private:
-    Button sensorPeso;
-    Button sensorTarjeta;
+    Button weightSensor;
+    Button cardSensor;
     Led pluma;
 
 public:
     // Con esto detectamos si la pluma esta abierta o cerrada
-    enum EstadoPluma
+    enum SystemStates
     {
-        ESPERANDO,
-        DETECTAR_CARRO,
-        PLUMA_ABIERTA,
-        CERRANDO_PLUMA,
+        WAITING,
+        CAR_DETECTED,
+        OPENED_PEN,
+        CLOSING_PEN,
     };
 
 private:
-    EstadoPluma estado = ESPERANDO;
+    SystemStates state = WAITING;
 
     void updateState()
     {
-
         // Lectura de sensores
-        this->sensorPeso.read();
-        this->sensorTarjeta.read();
+        this->weightSensor.read();
+        this->cardSensor.read();
 
         // Update del estado
-        switch (this->estado)
+        switch (this->state)
         {
         // No ha pasado nada
-        case ESPERANDO:
-            if (this->sensorPeso.getState() == HIGH)
+        case WAITING:
+            if (this->weightSensor.getState() == HIGH)
             {
-                this->estado = DETECTAR_CARRO;
+                this->state = CAR_DETECTED;
             }
             break;
 
         // Ahora espera el scan de la tarjeta, o que se quite
-        case DETECTAR_CARRO:
+        case CAR_DETECTED:
 
             // Se quito el carro
-            if (this->sensorPeso.getState() == LOW)
+            if (this->weightSensor.getState() == LOW)
             {
-                this->estado = ESPERANDO;
+                this->state = WAITING;
             }
             else
                 // El carro esta, y se pone la tarjeta
-                if (this->sensorTarjeta.getState() == HIGH)
+                if (this->cardSensor.getState() == HIGH)
                 {
-                    this->estado = PLUMA_ABIERTA;
+                    this->state = OPENED_PEN;
                 }
 
             // Si no se cumple ninguna de las condiciones, el estado se deja igual
             break;
 
-        case PLUMA_ABIERTA:
+        case OPENED_PEN:
             // Se quita el carro de la pesa, el auto ya paso.
-            if (this->sensorPeso.getState() == LOW)
+            if (this->weightSensor.getState() == LOW)
             {
-                this->estado = CERRANDO_PLUMA; // Manda un pulso de que se esta cerrando la pluma
+                this->state = CLOSING_PEN; // Manda un pulso de que se esta cerrando la pluma
             }
 
             break;
 
-        case CERRANDO_PLUMA: // Representa el pulso para poder contar
-            this->estado = ESPERANDO;
+        case CLOSING_PEN: // Representa el pulso para poder contar
+            this->state = WAITING;
             break;
 
         default:
-            this->estado = ESPERANDO;
+            this->state = WAITING;
         }
     }
 
     void handlePluma()
     {
-        this->estado == PLUMA_ABIERTA ? this->pluma.on() : this->pluma.off();
+        this->state == OPENED_PEN ? this->pluma.on() : this->pluma.off();
     }
 
 public:
-    SistemaPluma() {}
+    ParkingPenSystem() {}
 
-    SistemaPluma(int pinPeso, int pinTarjeta, int pinPluma)
+    ParkingPenSystem(int pinPeso, int pinTarjeta, int pinPluma)
     {
-        this->sensorPeso = Button(pinPeso);
-        this->sensorTarjeta = Button(pinTarjeta);
+        this->weightSensor = Button(pinPeso);
+        this->cardSensor = Button(pinTarjeta);
         this->pluma = Led(pinPluma);
     }
 
-    EstadoPluma getState()
+    SystemStates getState()
     {
-        return this->estado;
+        return this->state;
     }
 
     void update()
@@ -251,63 +257,63 @@ public:
 
     void open()
     {
-        this->estado = PLUMA_ABIERTA;
+        this->state = OPENED_PEN;
         this->handlePluma();
     }
 
     void close()
     {
-        this->estado = ESPERANDO;
+        this->state = WAITING;
         this->handlePluma();
     }
 };
 
-class Estacionamiento
+class Parking
 {
 
 private:
-    CounterWithLimit counterCarros;
+    CounterWithLimit carCounter;
     LiquidCrystal *logger;
-    SistemaPluma sistemasPluma[2];
-    Led ledDisponible;
-    Led ledLleno;
+    ParkingPenSystem parkingPen[2];
+    Led availableLed;
+    Led fullLed;
 
-    enum EstadoEstacionamiento
+    enum ParkingStates
     {
-        LLENO,
-        VACIO,
-        DISPONIBLE,
+        FULL,
+        EMPTY,
+        AVAILABLE,
     };
 
-    EstadoEstacionamiento state = DISPONIBLE;
+    ParkingStates state = AVAILABLE;
 
     enum SistemaPlumasIndices
     {
-        ENTRADA,
-        SALIDA
+        ENTRANCE,
+        EXIT
     };
 
 public:
-    Estacionamiento(int capacidad, LiquidCrystal *logger, SistemaPluma plumaEntrada, SistemaPluma plumaSalida, int pinLedDisponible, int pinLedLleno)
+    Parking(int capacidad, LiquidCrystal *logger, ParkingPenSystem plumaEntrada, ParkingPenSystem plumaSalida, int pinLedDisponible, int pinLedLleno)
     {
-        this->counterCarros = CounterWithLimit(0, capacidad + 1, 0);
+        this->carCounter = CounterWithLimit(0, capacidad + 1, 0);
         this->logger = logger;
-        this->sistemasPluma[ENTRADA] = plumaEntrada;
-        this->sistemasPluma[SALIDA] = plumaSalida;
-        this->ledDisponible = Led(pinLedDisponible);
-        this->ledLleno = Led(pinLedLleno);
+        this->parkingPen[ENTRANCE] = plumaEntrada;
+        this->parkingPen[EXIT] = plumaSalida;
+        this->availableLed = Led(pinLedDisponible);
+        this->fullLed = Led(pinLedLleno);
     }
 
 private:
     void updateState()
     {
-        this->state = this->counterCarros.isOnLowerLimit() ? VACIO : this->counterCarros.isOnUpperLimit() ? LLENO
-                                                                                                          : DISPONIBLE;
+        this->state = this->carCounter.isOnLowerLimit() ? EMPTY : this->carCounter.isOnUpperLimit() ? FULL
+                                                                                                    : AVAILABLE;
     }
 
-    bool didACarPassThePluma(SistemaPluma &sistemaPluma)
+    bool didACarPassThePluma(ParkingPenSystem &sistemaPluma)
     {
-        return SistemaPluma::CERRANDO_PLUMA == sistemaPluma.getState();
+        return ParkingPenSystem::CLOSING_PEN == sistemaPluma.getState();
     }
 
     void handleOutputs()
@@ -315,40 +321,41 @@ private:
 
         switch (this->state)
         {
-        case LLENO:
-            this->sistemasPluma[ENTRADA].close();
-            this->sistemasPluma[SALIDA].update();
-            this->ledDisponible.off();
-            this->ledLleno.on();
+        case FULL:
+            this->parkingPen[ENTRANCE].close();
+            this->parkingPen[EXIT].update();
+            this->availableLed.off();
+            this->fullLed.on();
             break;
 
-        case VACIO:
-            this->sistemasPluma[ENTRADA].update();
-            this->sistemasPluma[SALIDA].close();
-            this->ledDisponible.on();
-            this->ledLleno.off();
+        case EMPTY:
+            this->parkingPen[ENTRANCE].update();
+            this->parkingPen[EXIT].close();
+            this->availableLed.on();
+            this->fullLed.off();
             break;
 
-        case DISPONIBLE:
-            this->sistemasPluma[ENTRADA].update();
-            this->sistemasPluma[SALIDA].update();
-            this->ledDisponible.on();
-            this->ledLleno.off();
+        case AVAILABLE:
+            this->parkingPen[ENTRANCE].update();
+            this->parkingPen[EXIT].update();
+            this->availableLed.on();
+            this->fullLed.off();
             break;
         }
 
-        if (this->didACarPassThePluma(this->sistemasPluma[ENTRADA]))
+        if (this->didACarPassThePluma(this->parkingPen[ENTRANCE]))
         {
-            this->counterCarros.increment();
+            this->carCounter.increment();
         }
 
-        if (this->didACarPassThePluma(this->sistemasPluma[SALIDA]))
+        if (this->didACarPassThePluma(this->parkingPen[EXIT]))
         {
-            this->counterCarros.decrement();
+            this->carCounter.decrement();
         }
 
         // Imprime la cuenta
-        lcd.print(this->counterCarros.getCount());
+        this->logger->setCursor(0, 1);
+        this->logger->print(this->carCounter.getCount());
     }
 
 public:
@@ -364,30 +371,17 @@ const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 /**************************************************/
 
-#define SENSOR_PESO_ENTRADA 0
-#define SENSOR_PESO_SALIDA 1
-#define SENSOR_TARJETA_ENTRADA 6
-#define SENSOR_TARJETA_SALIDA 7
-#define PLUMA_ENTRADA 8
-#define PLUMA_SALIDA 13
-
-const Estacionamiento estacionamiento(15, &lcd,
-                                      SistemaPluma(SENSOR_PESO_ENTRADA, SENSOR_TARJETA_ENTRADA, PLUMA_ENTRADA),
-                                      SistemaPluma(SENSOR_PESO_SALIDA, SENSOR_TARJETA_SALIDA, PLUMA_SALIDA), 0, 0);
+Parking parking(15, &lcd,
+                ParkingPenSystem(SENSOR_PESO_ENTRADA, SENSOR_TARJETA_ENTRADA, PLUMA_ENTRADA),
+                ParkingPenSystem(SENSOR_PESO_SALIDA, SENSOR_TARJETA_SALIDA, PLUMA_SALIDA), LED_DISPONIBLE, LED_LLENO);
 
 void setup()
 {
     // set up the LCD's number of columns and rows:
     lcd.begin(16, 2);
-
-    // Print a message to the LCD.
-    lcd.print("Sistema de las plumas");
 }
 
 void loop()
 {
-    // set the cursor to column 0, line 1
-    // (note: line 1 is the second row, since counting begins with 0):
-    lcd.setCursor(0, 1);
-    // print the number of seconds since reset:
+    parking.update();
 }
