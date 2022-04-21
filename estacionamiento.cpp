@@ -114,6 +114,9 @@ public:
     }
 };
 
+/*
+ * This is a wrapper to handle button reads
+ */
 class Button
 {
 
@@ -133,17 +136,29 @@ public:
         pinMode(pin, INPUT);
     }
 
+    /*
+     * void read()
+     * Reads the value of the pin, and updates the state of the button
+     */
     void read()
     {
         this->state = digitalRead(this->pin);
     }
 
+    /*
+     * int getState()
+     * Gets the state of the button, doesn't read again.
+     */
     int getState()
     {
         return this->state;
     }
 };
 
+/*
+ *  Led
+ * It's a Wrapper to handle the Leds
+ */
 class Led
 {
 
@@ -173,6 +188,10 @@ public:
     }
 };
 
+/*
+ *  ParkingPenSystem
+ * It handles the ParkingPen System, including updating it's internal state and handling the pen
+ */
 class ParkingPenSystem
 {
 
@@ -182,77 +201,15 @@ private:
     Led pluma;
 
 public:
-    // Con esto detectamos si la pluma esta abierta o cerrada
+    // These are the Possible states of the Pen
     enum SystemStates
     {
-        WAITING,
-        CAR_DETECTED,
-        OPENED_PEN,
-        CLOSING_PEN,
+        CLOSED_PEN,   // Iddle, with the pen closed.
+        CAR_DETECTED, // Weight sensor is active
+        OPENED_PEN,   // Both weight sensor and card sensor are active
+        PASSING_CAR,  // After opening the pen, when the car leaves, then it sends a pulse for closing the pen.
     };
 
-private:
-    SystemStates state = WAITING;
-
-    void updateState()
-    {
-        // Lectura de sensores
-        this->weightSensor.read();
-        this->cardSensor.read();
-
-        // Update del estado
-        switch (this->state)
-        {
-        // No ha pasado nada
-        case WAITING:
-            if (this->weightSensor.getState() == HIGH)
-            {
-                this->state = CAR_DETECTED;
-            }
-            break;
-
-        // Ahora espera el scan de la tarjeta, o que se quite
-        case CAR_DETECTED:
-
-            // Se quito el carro
-            if (this->weightSensor.getState() == LOW)
-            {
-                this->state = WAITING;
-            }
-            else
-                // El carro esta, y se pone la tarjeta
-                if (this->cardSensor.getState() == HIGH)
-                {
-                    this->state = OPENED_PEN;
-                }
-
-            // Si no se cumple ninguna de las condiciones, el estado se deja igual
-            break;
-
-        case OPENED_PEN:
-            // Se quita el carro de la pesa, el auto ya paso.
-            if (this->weightSensor.getState() == LOW)
-            {
-                this->state = CLOSING_PEN; // Manda un pulso de que se esta cerrando la pluma
-            }
-
-            break;
-
-        case CLOSING_PEN: // Representa el pulso para poder contar
-            this->state = WAITING;
-            break;
-
-        default:
-            this->state = WAITING;
-        }
-    }
-
-    void handlePluma()
-    {
-        this->state == OPENED_PEN ? this->pluma.on() : this->pluma.off();
-    }
-
-public:
     ParkingPenSystem() {}
 
     ParkingPenSystem(int pinPeso, int pinTarjeta, int pinPluma)
@@ -262,26 +219,88 @@ public:
         this->pluma = Led(pinPluma);
     }
 
+private:
+    SystemStates state = CLOSED_PEN;
+
+    void updateState()
+    {
+        // Reads the sensors
+        this->weightSensor.read();
+        this->cardSensor.read();
+
+        switch (this->state)
+        {
+
+        case CLOSED_PEN:
+            if (this->weightSensor.getState() == HIGH)
+            {
+                this->state = CAR_DETECTED;
+            }
+            break;
+
+        case CAR_DETECTED:
+
+            // The car went off without using the card sensor
+            if (this->weightSensor.getState() == LOW)
+            {
+                this->state = CLOSED_PEN;
+            }
+
+            // The car puts the card in the car sensor
+            else if (this->cardSensor.getState() == HIGH)
+            {
+                this->state = OPENED_PEN;
+            }
+
+            // If none of the previous conditions are met, it means the car has not moved yet.
+            break;
+
+        case OPENED_PEN:
+
+            //  When the car leaves, then it must close the pen, regardless of the card state.
+            if (this->weightSensor.getState() == LOW)
+            {
+                this->state = PASSING_CAR; // Manda un pulso de que se esta cerrando la pluma
+            }
+            // If it has not moved, the pen must remain opened
+            break;
+
+        case PASSING_CAR:
+            // Because it is a pulse, then it automatically closes and goes into the waiting state
+            this->state = CLOSED_PEN;
+            break;
+        }
+    }
+
+    void handlePluma()
+    {
+        this->state == OPENED_PEN ? this->pluma.on() : this->pluma.off();
+    }
+
+public:
     SystemStates getState()
     {
         return this->state;
     }
 
+    // Updates the state of the system, based on the inputs and the state
     void update()
     {
         this->updateState();
         this->handlePluma();
     }
 
+    // Manually open
     void open()
     {
         this->state = OPENED_PEN;
         this->handlePluma();
     }
 
+    // Manually closes
     void close()
     {
-        this->state = WAITING;
+        this->state = CLOSED_PEN;
         this->handlePluma();
     }
 };
@@ -305,21 +324,21 @@ private:
 
     ParkingStates state = AVAILABLE;
 
-    enum SistemaPlumasIndices
+    enum SistemaPlumasIdx
     {
         ENTRANCE,
         EXIT
     };
 
 public:
-    Parking(int capacidad, LiquidCrystal *logger, ParkingPenSystem plumaEntrada, ParkingPenSystem plumaSalida, int pinLedDisponible, int pinLedLleno)
+    Parking(int capacity, LiquidCrystal *logger, ParkingPenSystem entrancePenSystem, ParkingPenSystem exitPenSystem, int availableLedPin, int fullLedPin)
     {
-        this->carCounter = CounterWithLimit(0, capacidad + 1, 0);
+        this->carCounter = CounterWithLimit(0, capacity + 1, 0);
         this->logger = logger;
-        this->parkingPen[ENTRANCE] = plumaEntrada;
-        this->parkingPen[EXIT] = plumaSalida;
-        this->availableLed = Led(pinLedDisponible);
-        this->fullLed = Led(pinLedLleno);
+        this->parkingPen[ENTRANCE] = entrancePenSystem;
+        this->parkingPen[EXIT] = exitPenSystem;
+        this->availableLed = Led(availableLedPin);
+        this->fullLed = Led(fullLedPin);
     }
 
 private:
@@ -329,9 +348,10 @@ private:
                                                                                                     : AVAILABLE;
     }
 
-    bool didACarPassThePluma(ParkingPenSystem &sistemaPluma)
+    // Checks if the pen sistem has a closing pen state,
+    bool didACarPassThePen(ParkingPenSystem &penSystem)
     {
-        return ParkingPenSystem::CLOSING_PEN == sistemaPluma.getState();
+        return ParkingPenSystem::PASSING_CAR == penSystem.getState();
     }
 
     void handleOutputs()
@@ -368,12 +388,12 @@ private:
             break;
         }
 
-        if (this->didACarPassThePluma(this->parkingPen[ENTRANCE]))
+        if (this->didACarPassThePen(this->parkingPen[ENTRANCE]))
         {
             this->carCounter.increment();
         }
 
-        if (this->didACarPassThePluma(this->parkingPen[EXIT]))
+        if (this->didACarPassThePen(this->parkingPen[EXIT]))
         {
             this->carCounter.decrement();
         }
