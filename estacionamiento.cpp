@@ -300,7 +300,7 @@ public:
     }
 };
 
-class Parking
+class ParkingLot
 {
 
 private:
@@ -326,7 +326,7 @@ private:
     };
 
 public:
-    Parking(int capacity, LiquidCrystal *logger, ParkingPenSystem entrancePenSystem, ParkingPenSystem exitPenSystem, int availableLedPin, int fullLedPin)
+    ParkingLot(int capacity, LiquidCrystal *logger, ParkingPenSystem entrancePenSystem, ParkingPenSystem exitPenSystem, int availableLedPin, int fullLedPin)
     {
         this->carCounter = CounterWithLimit(0, capacity + 1, 0);
         this->logger = logger;
@@ -386,6 +386,7 @@ private:
     }
 
 public:
+    // Updates the state of the parkingLot
     void update()
     {
         this->updateState();
@@ -393,9 +394,9 @@ public:
     }
 };
 
-Parking parking(CAPACIDAD_ESTACIONAMIENTO, &lcd,
-                ParkingPenSystem(SENSOR_PESO_ENTRADA, SENSOR_TARJETA_ENTRADA, PLUMA_ENTRADA),
-                ParkingPenSystem(SENSOR_PESO_SALIDA, SENSOR_TARJETA_SALIDA, PLUMA_SALIDA), LED_DISPONIBLE, LED_LLENO);
+ParkingLot parking(CAPACIDAD_ESTACIONAMIENTO, &lcd,
+                   ParkingPenSystem(SENSOR_PESO_ENTRADA, SENSOR_TARJETA_ENTRADA, PLUMA_ENTRADA),
+                   ParkingPenSystem(SENSOR_PESO_SALIDA, SENSOR_TARJETA_SALIDA, PLUMA_SALIDA), LED_DISPONIBLE, LED_LLENO);
 
 void setup()
 {
