@@ -9,6 +9,8 @@
 
 #include <LiquidCrystal.h>
 
+using bit = char; // Bit para poder guardar el estado de un objeto
+
 // Pins for connecting
 #define LED_DISPONIBLE 10
 #define LED_LLENO 9
@@ -19,27 +21,26 @@
 #define SENSOR_TARJETA_ENTRADA 1
 #define SENSOR_TARJETA_SALIDA 7
 #define CAPACIDAD_ESTACIONAMIENTO 15
+
+/***********Configuracion del LCD******************/
+// Esta configuracion es recomendada por Arduino
+const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+/**************************************************/
+
 /*
  * CounterwithLimit
  *
  * It keeps track of a count, in which it has a lower bound and an upper bound
  * [l,u). It also shows if you are on a limit.
  */
-
-using bit = char;
-
-/***********Configuracion del LCD******************/
-const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
-LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
-/**************************************************/
-
 class CounterWithLimit
 {
 
 private:
     int lowerBound;
     int upperBound;
-    int count = 0;
+    int count;
 
 public:
     CounterWithLimit()
@@ -74,7 +75,7 @@ public:
 
     int increment()
     {
-        if (this->upperBound > 1 + this->count)
+        if (!this->isOnUpperLimit())
         {
             this->count++;
         }
@@ -83,7 +84,7 @@ public:
 
     int decrement()
     {
-        if (this->lowerBound <= 1 + this->count)
+        if (!this->isOnLowerLimit())
         {
             this->count--;
         }
