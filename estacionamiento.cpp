@@ -12,13 +12,13 @@
 using bit = char; // Bit para poder guardar el estado de un objeto
 
 // Pins for connecting
-#define LED_DISPONIBLE 10
-#define LED_LLENO 9
+#define LED_DISPONIBLE 0 // 0
+#define LED_LLENO 1      // 1
 #define PLUMA_ENTRADA 8
 #define PLUMA_SALIDA 13
-#define SENSOR_PESO_ENTRADA 0
+#define SENSOR_PESO_ENTRADA 10 // 10
 #define SENSOR_PESO_SALIDA 6
-#define SENSOR_TARJETA_ENTRADA 1
+#define SENSOR_TARJETA_ENTRADA 9 // 9
 #define SENSOR_TARJETA_SALIDA 7
 #define CAPACIDAD_ESTACIONAMIENTO 15
 
@@ -425,6 +425,10 @@ public:
     {
         this->updateState();
         this->handleOutputs();
+
+        logger->setCursor(0, 1);
+        logger->print(this->parkingPen[ENTRANCE].getState());
+        logger->print(this->parkingPen[EXIT].getState());
     }
 };
 
