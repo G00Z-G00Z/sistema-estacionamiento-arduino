@@ -1,4 +1,15 @@
+/*
+ * name: Eduardo Gomez
+ * mat: 550775
+ *
+ * Este programa simula un sistema de estacionamiento. Cuenta cuantos carros hay
+ * en el estacionamiento y con esa informacion, despliega si el estacionamiento
+ * esta lleno o vacio.
+ */
+
 #include <LiquidCrystal.h>
+
+// Pins for connecting
 #define LED_DISPONIBLE 10
 #define LED_LLENO 9
 #define PLUMA_ENTRADA 8
@@ -7,6 +18,7 @@
 #define SENSOR_PESO_SALIDA 6
 #define SENSOR_TARJETA_ENTRADA 1
 #define SENSOR_TARJETA_SALIDA 7
+#define CAPACIDAD_ESTACIONAMIENTO 15
 /*
  * CounterwithLimit
  *
@@ -378,7 +390,7 @@ public:
     }
 };
 
-Parking parking(3, &lcd,
+Parking parking(CAPACIDAD_ESTACIONAMIENTO, &lcd,
                 ParkingPenSystem(SENSOR_PESO_ENTRADA, SENSOR_TARJETA_ENTRADA, PLUMA_ENTRADA),
                 ParkingPenSystem(SENSOR_PESO_SALIDA, SENSOR_TARJETA_SALIDA, PLUMA_SALIDA), LED_DISPONIBLE, LED_LLENO);
 
