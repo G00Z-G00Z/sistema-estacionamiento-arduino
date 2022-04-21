@@ -75,19 +75,13 @@ public:
 
     int increment()
     {
-        if (!this->isOnUpperLimit())
-        {
-            this->count++;
-        }
+        !this->isOnUpperLimit() and this->count++;
         return this->count;
     }
 
     int decrement()
     {
-        if (!this->isOnLowerLimit())
-        {
-            this->count--;
-        }
+        !this->isOnLowerLimit() and this->count--;
         return this->count;
     }
 
@@ -232,6 +226,7 @@ private:
         {
 
         case CLOSED_PEN:
+
             if (this->weightSensor.getState() == HIGH)
             {
                 this->state = CAR_DETECTED;
@@ -348,7 +343,7 @@ private:
                                                                                                     : AVAILABLE;
     }
 
-    // Checks if the pen sistem has a closing pen state,
+    // Checks if the pen sistem has a PASSING_CAR state, meaning that the car passed
     bool didACarPassThePen(ParkingPenSystem &penSystem)
     {
         return ParkingPenSystem::PASSING_CAR == penSystem.getState();
@@ -360,8 +355,6 @@ private:
         switch (this->state)
         {
         case FULL:
-            // this->logger->setCursor(0, 2);
-            // this->logger->print("full");
             this->parkingPen[ENTRANCE].close();
             this->parkingPen[EXIT].update();
             this->availableLed.off();
@@ -369,9 +362,6 @@ private:
             break;
 
         case EMPTY:
-
-            // this->logger->setCursor(0, 2);
-            // this->logger->print("empty");
             this->parkingPen[ENTRANCE].update();
             this->parkingPen[EXIT].close();
             this->availableLed.on();
@@ -379,8 +369,6 @@ private:
             break;
 
         case AVAILABLE:
-            // this->logger->setCursor(0, 2);
-            // this->logger->print("dis");
             this->parkingPen[ENTRANCE].update();
             this->parkingPen[EXIT].update();
             this->availableLed.on();
@@ -388,15 +376,9 @@ private:
             break;
         }
 
-        if (this->didACarPassThePen(this->parkingPen[ENTRANCE]))
-        {
-            this->carCounter.increment();
-        }
-
-        if (this->didACarPassThePen(this->parkingPen[EXIT]))
-        {
-            this->carCounter.decrement();
-        }
+        // Checar estados de la pluma
+        this->didACarPassThePen(this->parkingPen[ENTRANCE]) and this->carCounter.increment();
+        this->didACarPassThePen(this->parkingPen[EXIT]) and this->carCounter.decrement();
 
         // Imprime la cuenta
         this->logger->setCursor(0, 1);
