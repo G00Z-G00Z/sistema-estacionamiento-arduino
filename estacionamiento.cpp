@@ -300,6 +300,10 @@ public:
     }
 };
 
+/*
+ * class ParkingLot
+ * This handdles the parking lot system.
+ */
 class ParkingLot
 {
 
@@ -394,6 +398,7 @@ public:
     }
 };
 
+// Parking lot system.
 ParkingLot parking(CAPACIDAD_ESTACIONAMIENTO, &lcd,
                    ParkingPenSystem(SENSOR_PESO_ENTRADA, SENSOR_TARJETA_ENTRADA, PLUMA_ENTRADA),
                    ParkingPenSystem(SENSOR_PESO_SALIDA, SENSOR_TARJETA_SALIDA, PLUMA_SALIDA), LED_DISPONIBLE, LED_LLENO);
@@ -406,5 +411,6 @@ void setup()
 
 void loop()
 {
+    // Updates the system indefinalely
     parking.update();
 }
