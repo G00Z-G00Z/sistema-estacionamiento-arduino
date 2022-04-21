@@ -24,6 +24,7 @@ using bit = char; // Bit para poder guardar el estado de un objeto
 
 /***********Configuracion del LCD******************/
 // Esta configuracion es recomendada por Arduino
+// https://docs.arduino.cc/learn/electronics/lcd-displays
 const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 /**************************************************/
@@ -313,6 +314,7 @@ private:
     ParkingPenSystem parkingPen[2];
     Led availableLed;
     Led fullLed;
+    int prevCount = -1;
 
     enum ParkingStates
     {
@@ -340,7 +342,25 @@ public:
         this->fullLed = Led(fullLedPin);
     }
 
+    void initializeMessages()
+    {
+        this->logger->setCursor(0, 0);
+        this->logger->print("Carros: ");
+    }
+
 private:
+    // Checks if the count changed or not
+    bool didCountChanged()
+    {
+        if (this->carCounter.getCount() == prevCount)
+        {
+            return false;
+        }
+
+        prevCount = this->carCounter.getCount();
+        return true;
+    }
+
     void updateState()
     {
         this->state = this->carCounter.isOnLowerLimit() ? EMPTY : this->carCounter.isOnUpperLimit() ? FULL
@@ -351,6 +371,15 @@ private:
     bool didACarPassThePen(ParkingPenSystem &penSystem)
     {
         return ParkingPenSystem::PASSING_CAR == penSystem.getState();
+    }
+
+    void displayCarCount()
+    {
+        this->logger->setCursor(9, 0);
+        // Erases the prev count
+        this->logger->print("  ");
+        this->logger->setCursor(9, 0);
+        this->logger->print(this->carCounter.getCount());
     }
 
     void handleOutputs()
@@ -384,9 +413,10 @@ private:
         this->didACarPassThePen(this->parkingPen[ENTRANCE]) and this->carCounter.increment();
         this->didACarPassThePen(this->parkingPen[EXIT]) and this->carCounter.decrement();
 
-        // Imprime la cuenta
-        this->logger->setCursor(0, 1);
-        this->logger->print(this->carCounter.getCount());
+        if (this->didCountChanged())
+        {
+            this->displayCarCount();
+        }
     }
 
 public:
@@ -407,6 +437,7 @@ void setup()
 {
     // set up the LCD's number of columns and rows:
     lcd.begin(16, 2);
+    parking.initializeMessages();
 }
 
 void loop()
