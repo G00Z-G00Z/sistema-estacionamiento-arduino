@@ -4,8 +4,8 @@
 #define PLUMA_ENTRADA 8
 #define PLUMA_SALIDA 13
 #define SENSOR_PESO_ENTRADA 0
-#define SENSOR_PESO_SALIDA 1
-#define SENSOR_TARJETA_ENTRADA 6
+#define SENSOR_PESO_SALIDA 6
+#define SENSOR_TARJETA_ENTRADA 1
 #define SENSOR_TARJETA_SALIDA 7
 /*
  * CounterwithLimit
@@ -15,6 +15,11 @@
  */
 
 using bit = char;
+
+/***********Configuracion del LCD******************/
+const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+/**************************************************/
 
 class CounterWithLimit
 {
@@ -52,7 +57,7 @@ public:
 
     bool isOnUpperLimit()
     {
-        return this->count == this->upperBound;
+        return this->count == this->upperBound - 1;
     }
 
     int increment()
@@ -322,6 +327,8 @@ private:
         switch (this->state)
         {
         case FULL:
+            // this->logger->setCursor(0, 2);
+            // this->logger->print("full");
             this->parkingPen[ENTRANCE].close();
             this->parkingPen[EXIT].update();
             this->availableLed.off();
@@ -329,6 +336,9 @@ private:
             break;
 
         case EMPTY:
+
+            // this->logger->setCursor(0, 2);
+            // this->logger->print("empty");
             this->parkingPen[ENTRANCE].update();
             this->parkingPen[EXIT].close();
             this->availableLed.on();
@@ -336,6 +346,8 @@ private:
             break;
 
         case AVAILABLE:
+            // this->logger->setCursor(0, 2);
+            // this->logger->print("dis");
             this->parkingPen[ENTRANCE].update();
             this->parkingPen[EXIT].update();
             this->availableLed.on();
@@ -366,12 +378,7 @@ public:
     }
 };
 
-/***********Configuracion del LCD******************/
-const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
-LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
-/**************************************************/
-
-Parking parking(15, &lcd,
+Parking parking(3, &lcd,
                 ParkingPenSystem(SENSOR_PESO_ENTRADA, SENSOR_TARJETA_ENTRADA, PLUMA_ENTRADA),
                 ParkingPenSystem(SENSOR_PESO_SALIDA, SENSOR_TARJETA_SALIDA, PLUMA_SALIDA), LED_DISPONIBLE, LED_LLENO);
 
