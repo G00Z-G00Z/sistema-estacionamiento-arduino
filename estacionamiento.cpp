@@ -425,10 +425,6 @@ public:
     {
         this->updateState();
         this->handleOutputs();
-
-        logger->setCursor(0, 1);
-        logger->print(this->parkingPen[ENTRANCE].getState());
-        logger->print(this->parkingPen[EXIT].getState());
     }
 };
 
